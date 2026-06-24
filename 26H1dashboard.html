@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>애널리스트 폴 진행 대시보드</title>
+  <style>
+    :root {
+      --bg: #eef2f5;
+      --surface: #ffffff;
+      --surface-soft: #f7f9fb;
+      --ink: #182433;
+      --muted: #667789;
+      --line: #d9e1e8;
+      --line-strong: #bcc9d5;
+      --blue: #173f5f;
+      --blue-2: #3f7ca8;
+      --teal: #2a9d8f;
+      --amber: #d08b2e;
+      --red: #c94d4d;
+      --green: #4d9471;
+      --purple: #7768ae;
+      --shadow: 0 10px 28px rgba(24, 36, 51, 0.08);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Pretendard", "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: geometricPrecision;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 18px;
+      padding: 22px 24px;
+      color: #fff;
+      background: linear-gradient(135deg, #173f5f 0%, #22577a 100%);
+      border-radius: var(--radius) var(--radius) 0 0;
+      box-shadow: var(--shadow);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 27px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      display: none;
+      margin-top: 0;
+      color: #dbeaf4;
+      font-size: 12px;
+    }
+
+    .meta {
+      text-align: right;
+      color: #e7f1f8;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    main {
+      padding: 20px;
+      background: var(--surface);
+      border: 1px solid #c7d4df;
+      border-top: 0;
+      box-shadow: var(--shadow);
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    button,
+    .segmented button,
+    input,
+    select {
+      font: inherit;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #fff;
+      color: #24384b;
+    }
+
+    button {
+      padding: 7px 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:hover,
+    .segmented button.active {
+      background: #eaf3f8;
+      border-color: #7fa6c6;
+      color: #1f4e78;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 430px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .layout > *,
+    .summary-grid > *,
+    .panel,
+    .table-wrap {
+      min-width: 0;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1.02fr 3fr 1.02fr;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .kpi-group {
+      display: grid;
+      gap: 10px;
+      padding: 10px;
+      border: 1px solid #d4e0ea;
+      border-radius: 10px;
+      background: #f6f9fc;
+    }
+
+    .kpi-group.total,
+    .kpi-group.date {
+      grid-template-columns: 1fr;
+    }
+
+    .kpi-group.fields {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      background: #f4f8fb;
+    }
+
+    .kpi {
+      min-height: 92px;
+      padding: 16px 17px;
+      background: #ffffff;
+      border: 1px solid #d8e4ee;
+      border-radius: var(--radius);
+      box-shadow: 0 5px 14px rgba(24, 36, 51, 0.045);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 4px;
+      background: #d7e7f2;
+    }
+
+    .kpi-group.total .kpi::before {
+      background: var(--blue-2);
+    }
+
+    .kpi-group.fields .kpi:nth-of-type(2)::before {
+      background: #2f6f9f;
+    }
+
+    .kpi-group.fields .kpi:nth-of-type(3)::before {
+      background: #d08b2e;
+    }
+
+    .kpi-group.fields .kpi:nth-of-type(4)::before {
+      background: #4d9471;
+    }
+
+    .kpi-group.date .kpi::before {
+      background: #173f5f;
+    }
+
+    .kpi .label {
+      color: #40576c;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .kpi .value {
+      margin-top: 10px;
+      color: var(--blue);
+      font-size: 27px;
+      font-weight: 900;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kpi .sub {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      text-align: right;
+    }
+
+    .kpi-group-label {
+      grid-column: 1 / -1;
+      color: #2c4c65;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      padding: 0 2px;
+    }
+
+    .panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 6px 18px rgba(24, 36, 51, 0.05);
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid #edf1f5;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 16px;
+      color: #20364b;
+      font-weight: 900;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .panel-body {
+      padding: 14px 16px 16px;
+      overflow-x: auto;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 9px 10px;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #edf5fa;
+      color: #1f4e78;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    td:first-child, th:first-child { text-align: left; }
+
+    tfoot td {
+      background: #f2f6fa;
+      color: #1f4e78;
+      font-weight: 900;
+      border-top: 2px solid #bfd2e1;
+    }
+
+    .highlight-col {
+      background: #f3f8fc;
+      color: #0f4c7a;
+      font-weight: 900;
+    }
+
+    th.highlight-col {
+      background: #d7eaf8;
+      color: #0b426a;
+    }
+
+    .total-row td {
+      background: #f2f6fa;
+      color: #1f4e78;
+      font-weight: 900;
+      border-top: 2px solid #bfd2e1;
+    }
+
+    .chart {
+      width: 100%;
+      min-height: 250px;
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      overflow: visible;
+    }
+
+    .gridline {
+      stroke: #d9e1e8;
+      stroke-dasharray: 4 4;
+    }
+
+    .axis {
+      stroke: #b9c5d0;
+    }
+
+    .tick, .legend, .axis-label {
+      fill: #556575;
+      font-size: 11px;
+    }
+
+    .data-label {
+      fill: #26384b;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .legend-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      color: var(--muted);
+      font-size: 12px;
+      padding-top: 8px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .swatch {
+      width: 18px;
+      height: 3px;
+      border-radius: 2px;
+      background: currentColor;
+    }
+
+    .priority-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .priority-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fbfdff;
+    }
+
+    .priority-name {
+      min-width: 0;
+      font-weight: 800;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .priority-field {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .priority-remain {
+      color: var(--red);
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .institution-panel {
+      margin-top: 18px;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfdff;
+    }
+
+    .segmented {
+      display: inline-flex;
+      gap: 4px;
+      padding: 3px;
+      background: #eef4f8;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .segmented button {
+      border: 0;
+      padding: 7px 10px;
+      background: transparent;
+      border-radius: 6px;
+      font-size: 12.5px;
+    }
+
+    .filter-controls {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    input {
+      min-width: 230px;
+      padding: 7px 9px;
+    }
+
+    select {
+      padding: 7px 30px 7px 9px;
+    }
+
+    .table-wrap {
+      max-height: 620px;
+      overflow: auto;
+    }
+
+    .institution-table th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .institution-table {
+      min-width: 820px;
+    }
+
+    .institution-table td:nth-child(2) {
+      min-width: 180px;
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status {
+      display: inline-flex;
+      min-width: 58px;
+      justify-content: center;
+      padding: 3px 7px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 900;
+      border: 1px solid transparent;
+    }
+
+    .status.done {
+      color: #1d6b46;
+      background: #e8f5ef;
+      border-color: #bfe3cf;
+    }
+
+    .status.active {
+      color: #8a5a12;
+      background: #fff4dc;
+      border-color: #f2d199;
+    }
+
+    .status.todo {
+      color: #7a2b2b;
+      background: #faeaea;
+      border-color: #efc3c3;
+    }
+
+    .progress-cell {
+      min-width: 130px;
+    }
+
+    .bar {
+      height: 8px;
+      background: #edf1f5;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, #4a86b8, #2a9d8f);
+      border-radius: inherit;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .empty {
+      padding: 28px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .memo {
+      margin-top: 16px;
+      padding: 11px 13px;
+      border: 1px solid #d7bd76;
+      background: #fff5d6;
+      color: #765817;
+      border-radius: 7px;
+      font-size: 12px;
+    }
+
+    @media (max-width: 1180px) {
+      .layout,
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .kpi-group.fields {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .page { padding: 12px; }
+      .topbar { flex-direction: column; align-items: flex-start; }
+      .meta { text-align: left; }
+      main { padding: 12px; }
+      .kpi-grid { grid-template-columns: 1fr; }
+      .kpi-group.fields { grid-template-columns: 1fr; }
+      .filters { align-items: stretch; }
+      .segmented, .filter-controls { width: 100%; }
+      .segmented { overflow-x: auto; }
+      input, select { width: 100%; min-width: 0; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .page { max-width: none; padding: 0; }
+      .toolbar, .filters { display: none; }
+      .topbar, main { box-shadow: none; }
+      .table-wrap { max-height: none; overflow: visible; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="toolbar">
+      <button type="button" onclick="window.print()">인쇄 / PDF 저장</button>
+    </div>
+    <header class="topbar">
+      <div>
+        <h1>애널리스트 폴 진행 대시보드</h1>
+        <div class="subtitle" id="sourceLine"></div>
+      </div>
+      <div class="meta">
+        <div>집계 기준일 <strong id="lastProgressDate"></strong></div>
+        <div id="generatedAt"></div>
+      </div>
+    </header>
+
+    <main>
+      <section class="kpi-grid" id="kpiGrid"></section>
+
+      <div class="layout">
+        <div>
+          <section class="panel">
+            <div class="panel-head">
+              <h2 class="panel-title">분야별 요약</h2>
+              <span class="note">요청/완료 표수 기준</span>
+            </div>
+            <div class="panel-body">
+              <table id="summaryTable"></table>
+            </div>
+          </section>
+
+          <section class="panel" style="margin-top:18px">
+            <div class="panel-head">
+              <h2 class="panel-title">일자별 진행현황 집계</h2>
+              <span class="note">A1:L5</span>
+            </div>
+            <div class="panel-body">
+              <table id="progressTable"></table>
+            </div>
+          </section>
+
+          <section class="panel institution-panel">
+            <div class="panel-head">
+              <h2 class="panel-title">기관별 완료 현황</h2>
+              <span class="note" id="institutionCount"></span>
+            </div>
+            <div class="filters">
+              <div class="segmented" id="fieldTabs"></div>
+              <div class="filter-controls">
+                <input id="searchInput" type="search" placeholder="기관명 검색" />
+                <select id="statusFilter" aria-label="상태 필터">
+                  <option value="all">전체 상태</option>
+                  <option value="미진행">미진행</option>
+                  <option value="진행중">진행중</option>
+                  <option value="완료">완료</option>
+                </select>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="institution-table" id="institutionTable"></table>
+            </div>
+          </section>
+        </div>
+
+        <aside>
+          <section class="panel">
+              <div class="panel-head">
+                <h2 class="panel-title">잔여 표수 상위 기관</h2>
+                <span class="note">상위 15개</span>
+            </div>
+            <div class="panel-body">
+              <div class="priority-list" id="priorityList"></div>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+    </main>
+  </div>
+
+  <script id="dashboard-data" type="application/json">{"sourceFile": "(GR) 2026 상반기 베스트 애널리스트 폴 표수 정리.xlsx", "generatedAt": "2026-06-24 10:08", "generatedHour": "10", "fields": [{"field": "주식", "institutionCount": 357, "requested": 1246, "completed": 117, "remaining": 1129, "rate": 0.09390048154093097, "institutions": [{"field": "주식", "rank": 1, "name": "국민연금", "aum": 3209130, "requested": 30, "completed": 30, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "주식", "rank": 2, "name": "미래에셋자산운용", "aum": 1909340, "requested": 24, "completed": 24, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "주식", "rank": 3, "name": "삼성자산운용", "aum": 1519670, "requested": 23, "completed": 23, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "주식", "rank": 4, "name": "한국투자신탁운용", "aum": 764369, "requested": 20, "completed": 20, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "주식", "rank": 5, "name": "삼성생명", "aum": 707297, "requested": 20, "completed": 0, "remaining": 20, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 6, "name": "KB자산운용", "aum": 690952, "requested": 18, "completed": 0, "remaining": 18, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 7, "name": "NH아문디자산운용", "aum": 437425, "requested": 16, "completed": 0, "remaining": 16, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 8, "name": "한국교직원공제회", "aum": 0, "requested": 15, "completed": 0, "remaining": 15, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 9, "name": "신한자산운용", "aum": 371694, "requested": 15, "completed": 0, "remaining": 15, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 10, "name": "사립학교교직원연금공단", "aum": 0, "requested": 15, "completed": 0, "remaining": 15, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 11, "name": "마이다스에셋자산운용", "aum": 312512, "requested": 15, "completed": 0, "remaining": 15, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 12, "name": "공무원연금공단", "aum": 0, "requested": 15, "completed": 0, "remaining": 15, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 13, "name": "한화자산운용", "aum": 256064, "requested": 14, "completed": 0, "remaining": 14, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 14, "name": "트러스톤자산운용", "aum": 264512, "requested": 14, "completed": 0, "remaining": 14, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 15, "name": "키움투자자산운용", "aum": 267074, "requested": 14, "completed": 0, "remaining": 14, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 16, "name": "베어링자산운용", "aum": 296079, "requested": 14, "completed": 0, "remaining": 14, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 17, "name": "교보악사자산운용", "aum": 222997, "requested": 12, "completed": 0, "remaining": 12, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 18, "name": "삼성액티브자산운용", "aum": 236196, "requested": 12, "completed": 0, "remaining": 12, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 19, "name": "DB자산운용", "aum": 250850, "requested": 12, "completed": 0, "remaining": 12, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 20, "name": "하나은행", "aum": "은행 1그룹", "requested": 10, "completed": 0, "remaining": 10, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 21, "name": "우정사업본부 예금", "aum": 0, "requested": 10, "completed": 5, "remaining": 5, "rate": 0.5, "status": "진행중"}, {"field": "주식", "rank": 22, "name": "우정사업본부 보험", "aum": 0, "requested": 10, "completed": 0, "remaining": 10, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 23, "name": "새마을금고중앙회", "aum": 0, "requested": 10, "completed": 0, "remaining": 10, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 24, "name": "대한지방행정공제회", "aum": 0, "requested": 10, "completed": 0, "remaining": 10, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 25, "name": "군인공제회", "aum": 0, "requested": 10, "completed": 0, "remaining": 10, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 26, "name": "KDB산업은행", "aum": "은행 1그룹", "requested": 10, "completed": 0, "remaining": 10, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 27, "name": "토러스자산운용", "aum": 62591, "requested": 10, "completed": 0, "remaining": 10, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 28, "name": "타임폴리오자산운용", "aum": 131270, "requested": 9, "completed": 0, "remaining": 9, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 29, "name": "삼성화재", "aum": 113157, "requested": 9, "completed": 0, "remaining": 9, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 30, "name": "VI자산운용", "aum": 111726, "requested": 9, "completed": 0, "remaining": 9, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 31, "name": "더제이자산운용", "aum": 138980, "requested": 8, "completed": 0, "remaining": 8, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 32, "name": "유리자산운용", "aum": 159599, "requested": 8, "completed": 0, "remaining": 8, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 33, "name": "우리자산운용", "aum": 107252, "requested": 8, "completed": 8, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "주식", "rank": 34, "name": "VIP자산운용", "aum": 108587, "requested": 8, "completed": 0, "remaining": 8, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 35, "name": "NH농협금융지주", "aum": 104000, "requested": 8, "completed": 0, "remaining": 8, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 36, "name": "iM에셋자산운용", "aum": 148502, "requested": 8, "completed": 0, "remaining": 8, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 37, "name": "미래에셋생명 변액운용", "aum": 50000, "requested": 7, "completed": 0, "remaining": 7, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 38, "name": "한국투자밸류자산운용", "aum": 77346, "requested": 7, "completed": 0, "remaining": 7, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 39, "name": "하나자산운용", "aum": 96723, "requested": 7, "completed": 0, "remaining": 7, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 40, "name": "쿼드자산운용", "aum": 54857, "requested": 7, "completed": 0, "remaining": 7, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 41, "name": "카디안자산운용", "aum": 91512, "requested": 7, "completed": 0, "remaining": 7, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 42, "name": "신영자산운용", "aum": 67981, "requested": 7, "completed": 0, "remaining": 7, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 43, "name": "라이프자산운용", "aum": 50870, "requested": 7, "completed": 0, "remaining": 7, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 44, "name": "대신자산운용", "aum": 95998, "requested": 7, "completed": 0, "remaining": 7, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 45, "name": "노란우산공제회", "aum": 70000, "requested": 7, "completed": 0, "remaining": 7, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 46, "name": "과학기술인공제회", "aum": 0, "requested": 7, "completed": 0, "remaining": 7, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 47, "name": "경찰공제회", "aum": 0, "requested": 7, "completed": 0, "remaining": 7, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 48, "name": "IBK자산운용", "aum": 82190, "requested": 7, "completed": 0, "remaining": 7, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 49, "name": "투시그마인베스트먼트", "aum": "공시X", "requested": 7, "completed": 1, "remaining": 6, "rate": 0.14285714285714285, "status": "진행중"}, {"field": "주식", "rank": 50, "name": "우리은행 WM상품부", "aum": "은행 1그룹", "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 51, "name": "우리은행 신탁부 주식", "aum": "은행 1그룹", "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 52, "name": "신한은행", "aum": "은행 1그룹", "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 53, "name": "신한은행 투자상품부", "aum": "은행 1그룹", "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 54, "name": "수협중앙회", "aum": 0, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 55, "name": "이지스자산운용", "aum": 16747, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 56, "name": "보고펀드자산운용", "aum": 10623, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 57, "name": "머스트자산운용", "aum": 23230, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 58, "name": "구도자산운용", "aum": 16660, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 59, "name": "현대자산운용", "aum": 13280, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 60, "name": "유진자산운용", "aum": 12457, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 61, "name": "슬기자산운용", "aum": 19021, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 62, "name": "V&S자산운용", "aum": 12274, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 63, "name": "흥국자산운용", "aum": 14859, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 64, "name": "현대인베스트먼트자산운용", "aum": 41960, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 65, "name": "한화생명", "aum": 39268, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 66, "name": "피데스자산운용", "aum": 14465, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 67, "name": "페트라자산운용", "aum": 10485, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 68, "name": "파라투스인베스트먼트", "aum": 10275, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 69, "name": "타이거자산운용투자일임", "aum": 30442, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 70, "name": "코람코자산운용", "aum": 11399, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 71, "name": "에셋플러스자산운용", "aum": 39659, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 72, "name": "안다자산운용", "aum": 11943, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 73, "name": "신협중앙회", "aum": 0, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 74, "name": "스팍스자산운용", "aum": 31030, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 75, "name": "빌리언폴드자산운용", "aum": 20950, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 76, "name": "더블유자산운용", "aum": 12701, "requested": 6, "completed": 6, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "주식", "rank": 77, "name": "다올자산운용", "aum": 21548, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 78, "name": "기술보증기금", "aum": 0, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 79, "name": "그로쓰힐자산운용", "aum": 22618, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 80, "name": "국민체육진흥기금", "aum": 0, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 81, "name": "교보생명", "aum": 22502, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 82, "name": "건설근로자공제회", "aum": 13915, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 83, "name": "SC제일은행(투자전략상품)", "aum": "은행 3그룹", "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 84, "name": "NH농협은행", "aum": "은행 2그룹", "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 85, "name": "KCGI자산운용", "aum": 39523, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 86, "name": "IBK기업은행", "aum": "은행 3그룹", "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 87, "name": "HDC자산운용", "aum": 21023, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 88, "name": "DS자산운용", "aum": 42654, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 89, "name": "DB손해보험", "aum": 12016, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 90, "name": "BNK자산운용", "aum": 37480, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 91, "name": "KB국민은행 신탁그룹", "aum": "은행 1그룹", "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 92, "name": "NH농협중앙회 신탁부", "aum": 9000, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 93, "name": "KB라이프 변액계정", "aum": 9500, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 94, "name": "황소자산운용", "aum": 6066, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 95, "name": "GVA자산운용", "aum": 6749, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 96, "name": "아너스자산운용", "aum": 5765, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 97, "name": "레인메이커자산운용", "aum": 7585, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 98, "name": "TRS투자자문", "aum": 7017, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 99, "name": "아크임팩트자산운용", "aum": 9772, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 100, "name": "한국증권금융", "aum": 0, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 101, "name": "코레이트자산운용", "aum": 9655, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 102, "name": "캄투자일임", "aum": 9115, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 103, "name": "칸서스자산운용", "aum": 6822, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 104, "name": "체슬리투자자문", "aum": 8634, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 105, "name": "전북은행", "aum": "은행 4그룹", "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 106, "name": "전문건설공제조합", "aum": 0, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 107, "name": "유경PSG자산운용", "aum": 6276, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 108, "name": "씨스퀘어자산운용", "aum": 5121, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 109, "name": "수성자산운용", "aum": 6311, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 110, "name": "산림조합중앙회", "aum": 0, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 111, "name": "브레인자산운용", "aum": 8472, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 112, "name": "밸류시스템자산운용", "aum": 8637, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 113, "name": "국민연금 기금운용본부", "aum": 0, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 114, "name": "광주은행", "aum": "은행 4그룹", "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 115, "name": "Sh수협은행", "aum": "은행 4그룹", "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 116, "name": "SGI서울보증", "aum": 0, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 117, "name": "NH헤지자산운용 주식운용본부", "aum": 5496, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 118, "name": "JB우리캐피탈", "aum": 6337, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 119, "name": "Im뱅크", "aum": "은행 4그룹", "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 120, "name": "BNK부산은행", "aum": "은행 4그룹", "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 121, "name": "BNK경남은행", "aum": "은행 4그룹", "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 122, "name": "블리츠캐피탈매니지먼트", "aum": "공시X", "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 123, "name": "KB국민은행 자본시장그룹", "aum": "은행 1그룹", "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 124, "name": "KB국민은행 전략기획부(리서치)", "aum": "은행 1그룹", "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 125, "name": "미래에셋생명 투자운용", "aum": 3234, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 126, "name": "KB라이프", "aum": 2334, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 127, "name": "솔루션퀀트", "aum": 2290, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 128, "name": "메리디안원자산운용", "aum": 2290, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 129, "name": "인사이트자산운용", "aum": 2165, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 130, "name": "블리츠자산운용", "aum": 3449, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 131, "name": "Sh수협자산운용", "aum": 2591, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 132, "name": "사람사점영자산운용", "aum": 2141, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 133, "name": "흥국생명", "aum": 3507, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 134, "name": "현대해상", "aum": 3918, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 135, "name": "한화손해보험", "aum": 3903, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 136, "name": "푸른파트너스자산운용", "aum": 4553, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 137, "name": "파인밸류자산운용", "aum": 3806, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 138, "name": "코리안리", "aum": 4282, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 139, "name": "코르사자산운용", "aum": 3195, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 140, "name": "케이원자산운용", "aum": 2585, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 141, "name": "지안자산운용", "aum": 2646, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 142, "name": "유니스토리자산운용", "aum": 2232, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 143, "name": "웰컴자산운용", "aum": 4470, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 144, "name": "원자산운용", "aum": 2152, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 145, "name": "에스피자산운용", "aum": 2953, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 146, "name": "알파자산운용", "aum": 3714, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 147, "name": "아트만자산운용", "aum": 4222, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 148, "name": "신한라이프", "aum": 2260, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 149, "name": "블래쉬자산운용", "aum": 4494, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 150, "name": "브이자산운용", "aum": 3268, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 151, "name": "르네상스자산운용", "aum": 3994, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 152, "name": "PTR자산운용", "aum": 2197, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 153, "name": "JB자산운용", "aum": 2421, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 154, "name": "IBK연금보험", "aum": 0, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 155, "name": "HR자산운용", "aum": 2570, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 156, "name": "지지자산운용", "aum": "탈락", "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 157, "name": "아이트러스트자산운용", "aum": "탈락", "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 158, "name": "로버스트자산운용", "aum": 1882, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 159, "name": "가치투자자문", "aum": "탈락(1221)", "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 160, "name": "에이원자산운용", "aum": 2048, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 161, "name": "케이앤티파트너스", "aum": "공시X", "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 162, "name": "수협중앙회(조합자금부)", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 163, "name": "NH농협중앙회 주식운용팀", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 164, "name": "현대커머셜", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 165, "name": "현대카드", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 166, "name": "한국지방재정공제회", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 167, "name": "중소기업진흥공단 내일채움공제회", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 168, "name": "종근당홀딩스", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 169, "name": "신한리츠운용", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 170, "name": "대한소방공제회", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 171, "name": "에이에프더블유파트너스", "aum": "공시X", "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 172, "name": "동양생명", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 173, "name": "동양생명 글로벌전략운용본부(메인)", "aum": 979, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 174, "name": "동양생명 자산운용본부", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 175, "name": "오라이언자산운용", "aum": 1052, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 176, "name": "한강에셋자산운용", "aum": 214, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 177, "name": "케이클라비스자산운용", "aum": 1005, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 178, "name": "블랙보드자산운용", "aum": 294, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 179, "name": "브이엠자산운용", "aum": 1004, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 180, "name": "마스터자산운용", "aum": 1835, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 181, "name": "엠플러스자산운용", "aum": 540, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 182, "name": "인피니티글로벌자산운용(인피니티투자자문)", "aum": 1732, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 183, "name": "나이스자산운용", "aum": 966, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 184, "name": "ABL생명", "aum": 647, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 185, "name": "흥국화재해상보험", "aum": 609, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 186, "name": "하나생명", "aum": 438, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 187, "name": "하나손해보험", "aum": 15, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 188, "name": "플러스자산운용", "aum": 845, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 189, "name": "플랫폼파트너스자산운용", "aum": 1972, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 190, "name": "푸본현대생명", "aum": 2, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 191, "name": "퍼시픽자산운용", "aum": 427, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 192, "name": "안다에이치자산운용", "aum": 1706, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 193, "name": "스마일게이트자산운용", "aum": 758, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 194, "name": "슈로더자산운용", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 195, "name": "삼천리자산운용", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 196, "name": "비전자산운용", "aum": 1506, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 197, "name": "멜론자산운용", "aum": 109, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 198, "name": "메트라이프", "aum": 110, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 199, "name": "메테우스자산운용", "aum": 514, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 200, "name": "메리츠화재", "aum": 1347, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 201, "name": "마일스톤자산운용", "aum": 1861, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 202, "name": "마스턴투자운용", "aum": 278, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 203, "name": "롯데손해보험", "aum": 64, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 204, "name": "라이언자산운용", "aum": 1497, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 205, "name": "라이노스자산운용", "aum": 346, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 206, "name": "라이나생명", "aum": 124, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 207, "name": "다원자산운용", "aum": 130, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 208, "name": "골든브릿지자산운용", "aum": 645, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 209, "name": "NH농협손해보험 투자운용팀", "aum": 288, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 210, "name": "NH농협생명", "aum": 1418, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 211, "name": "KDB생명", "aum": 76, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 212, "name": "KB손해보험", "aum": 1821, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 213, "name": "DB생명", "aum": 1679, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 214, "name": "AIA생명보험", "aum": 930, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 215, "name": "스타퀘스트자산운용", "aum": "탈락", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 216, "name": "비엔비자산운용", "aum": "탈락(26일은 가능, 4일 기준으로는 불가)", "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 217, "name": "티아이자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 218, "name": "알파플러스자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 219, "name": "포커스자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 220, "name": "코어자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 221, "name": "씨앗자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 222, "name": "서울에셋매니지먼트자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 223, "name": "삼성헤지자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 224, "name": "브라이트자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 225, "name": "리코자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 226, "name": "크로톤자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 227, "name": "큐피트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 228, "name": "단델리온파트너스", "aum": "탈락(854)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 229, "name": "호두인베스트", "aum": 0, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 230, "name": "헤스캐피탈파트너스", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 231, "name": "한앤파트너스자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 232, "name": "한국대성자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 233, "name": "하이즈에셋자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 234, "name": "프렌드투자파트너스", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 235, "name": "프라핏자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 236, "name": "프라임자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 237, "name": "프라우스투자일임", "aum": "탈락(156)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 238, "name": "포레스트투자일임", "aum": "탈락(52)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 239, "name": "페테르인베스트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 240, "name": "파인투자자문", "aum": "탈락(0), 자문만", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 241, "name": "파운데이션투자자문", "aum": "탈락(429)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 242, "name": "파베르투자자문", "aum": "탈락(198)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 243, "name": "파레토자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 244, "name": "티엘자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 245, "name": "트로이투자일임", "aum": "탈락(929)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 246, "name": "트라움자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 247, "name": "투핸즈투자자문", "aum": "탈락(205)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 248, "name": "토브자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 249, "name": "템피스투자자문", "aum": "탈락(494)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 250, "name": "키아라어드바이저스", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 251, "name": "크로스코어투자", "aum": "탈락(0)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 252, "name": "크레딧사일로인베스트먼트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 253, "name": "크레디트스위스", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 254, "name": "쿼터백자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 255, "name": "케이핀자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 256, "name": "케이피자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 257, "name": "케이기술투자", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 258, "name": "컨두잇투자자문", "aum": "탈락(0)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 259, "name": "캣츠투자자문", "aum": "탈락(176)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 260, "name": "캔버스파트너스", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 261, "name": "카이투자자문", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 262, "name": "지큐자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 263, "name": "조인에셋글로벌자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 264, "name": "인테그랄투자자문", "aum": "탈락(97)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 265, "name": "인터레이스자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 266, "name": "이언투자자문", "aum": "탈락(806)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 267, "name": "이룸투자자문", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 268, "name": "이가자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 269, "name": "유온인베스트먼트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 270, "name": "유니베스트투자자문", "aum": "탈락(132)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 271, "name": "윈베스트투자자문", "aum": "탈락(166)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 272, "name": "웨스트리버투자일임", "aum": "탈락(56)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 273, "name": "우영자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 274, "name": "와이씨자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 275, "name": "올타임하이인베스트먼트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 276, "name": "올시즌투자일임", "aum": "탈락(62)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 277, "name": "오퍼스인베스트먼트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 278, "name": "엠제이투자자문", "aum": "탈락(300)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 279, "name": "엠씨투자자문", "aum": "탈락(53)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 280, "name": "엠더블유앤컴퍼니", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 281, "name": "엑스포넨셜자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 282, "name": "에이피자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 283, "name": "에이펙스자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 284, "name": "에이케이파트너스자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 285, "name": "에이아이콴텍", "aum": "탈락(298)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 286, "name": "에버그린인베스트먼트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 287, "name": "업라이즈투자자문", "aum": "탈락(1036)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 288, "name": "앱솔루트자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 289, "name": "앨트웰", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 290, "name": "알펜루트자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 291, "name": "알파뷰파트너스", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 292, "name": "아주IB투자", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 293, "name": "아이온자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 294, "name": "아우름자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 295, "name": "아스트라자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 296, "name": "아샘자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 297, "name": "아람자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 298, "name": "씨와이인베스트먼트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 299, "name": "씨엘파트너스", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 300, "name": "씨앤씨아이파트너스", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 301, "name": "썬앤트리자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 302, "name": "신밧드인베스트먼트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 303, "name": "시너지파트너스", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 304, "name": "스피네이커자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 305, "name": "스페이스자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 306, "name": "스페로파트너스", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 307, "name": "스트라이드파트너스", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 308, "name": "스토리원투자일임", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 309, "name": "스퀘어투자자문", "aum": "탈락(224)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 310, "name": "스카이투자자문", "aum": "탈락(169)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 311, "name": "스카이워크자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 312, "name": "설먼인베스트먼트", "aum": "탈락(233)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 313, "name": "샤크투자일임", "aum": "탈락(186", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 314, "name": "비욘드자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 315, "name": "비앤아이자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 316, "name": "블랙펄자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 317, "name": "블랙넘버스투자자문", "aum": "탈락(198)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 318, "name": "브로드하이자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 319, "name": "브레이브뉴인베스트먼트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 320, "name": "브라만투자자문", "aum": "탈락(57)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 321, "name": "바로투자자문", "aum": "탈락(3)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 322, "name": "미시간투자자문", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 323, "name": "모티브자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 324, "name": "맥쿼리투자신탁운용", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 325, "name": "마제스티자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 326, "name": "마스터투자자문", "aum": "탈락(70)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 327, "name": "릴라이언자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 328, "name": "리프투자자문", "aum": "탈락(129)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 329, "name": "리버사이드파트너스", "aum": "탈락(52)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 330, "name": "리드스톤투자일임", "aum": "탈락(272)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 331, "name": "롱텀투자자문", "aum": "탈락(268)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 332, "name": "로보피아", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 333, "name": "로만자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 334, "name": "레이크투자자문", "aum": "탈락(320)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 335, "name": "레드우드파트너즈", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 336, "name": "람다자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 337, "name": "라쿤자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 338, "name": "디앤에이치투자일임", "aum": "탈락(220)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 339, "name": "디멘젼투자자문", "aum": "탈락(485)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 340, "name": "두물머리투자자문", "aum": "탈락(0)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 341, "name": "두나미스자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 342, "name": "두나무투자일임", "aum": "탈락(1009)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 343, "name": "더퍼블릭자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 344, "name": "대덕자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 345, "name": "누림자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 346, "name": "금진투자자문", "aum": "탈락(989)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 347, "name": "글로벌원자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 348, "name": "게임체인저 인베스트먼트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 349, "name": "갤럭시자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 350, "name": "LK자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 351, "name": "JS투자일임", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 352, "name": "JB인베스트먼트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 353, "name": "DY자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 354, "name": "CW인베스트먼트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 355, "name": "AF인베스트먼트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 356, "name": "AFW자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "주식", "rank": 357, "name": "나무인베스트먼트", "aum": 0, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}]}, {"field": "채권, 신용분석", "institutionCount": 186, "requested": 408, "completed": 40, "remaining": 368, "rate": 0.09803921568627451, "institutions": [{"field": "채권, 신용분석", "rank": 1, "name": "국민연금", "aum": 2926050, "requested": 15, "completed": 15, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "채권, 신용분석", "rank": 2, "name": "삼성자산운용", "aum": 2359395, "requested": 14, "completed": 14, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "채권, 신용분석", "rank": 3, "name": "삼성생명", "aum": 1059105, "requested": 9, "completed": 6, "remaining": 3, "rate": 0.6666666666666666, "status": "진행중"}, {"field": "채권, 신용분석", "rank": 4, "name": "NH농협금융지주", "aum": 1187000, "requested": 9, "completed": 0, "remaining": 9, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 5, "name": "신한자산운용", "aum": 847862, "requested": 8, "completed": 0, "remaining": 8, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 6, "name": "한화자산운용", "aum": 806464, "requested": 8, "completed": 0, "remaining": 8, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 7, "name": "KB자산운용", "aum": 981762, "requested": 8, "completed": 0, "remaining": 8, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 8, "name": "미래에셋자산운용", "aum": 697364, "requested": 7, "completed": 0, "remaining": 7, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 9, "name": "우리자산운용", "aum": 559324, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 10, "name": "NH아문디자산운용", "aum": 504777, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 11, "name": "한화생명", "aum": 517138, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 12, "name": "교보생명", "aum": 446902, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 13, "name": "우정사업본부 예금", "aum": 0, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 14, "name": "우정사업본부 보험", "aum": 0, "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 15, "name": "흥국자산운용", "aum": 377242, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 16, "name": "교보악사자산운용", "aum": 359674, "requested": 5, "completed": 5, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "채권, 신용분석", "rank": 17, "name": "DB자산운용", "aum": 338247, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 18, "name": "하나자산운용", "aum": 318118, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 19, "name": "키움투자자산운용", "aum": 302426, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 20, "name": "하나은행", "aum": "은행 1그룹", "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 21, "name": "KDB산업은행", "aum": "은행 1그룹", "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 22, "name": "한국교직원공제회", "aum": 0, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 23, "name": "공무원연금", "aum": 0, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 24, "name": "신한라이프", "aum": 346791, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 25, "name": "NH농협생명", "aum": 332261, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 26, "name": "사립학교교직원연금공단", "aum": 0, "requested": 5, "completed": 0, "remaining": 5, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 27, "name": "IBK자산운용", "aum": 220845, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 28, "name": "KB라이프", "aum": 209315, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 29, "name": "KB국민은행 자본시장그룹", "aum": "은행 1그룹", "requested": 6, "completed": 0, "remaining": 6, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 30, "name": "새마을금고중앙회", "aum": 0, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 31, "name": "삼성화재", "aum": 259934, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 32, "name": "신협중앙회", "aum": 250000, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 33, "name": "현대해상", "aum": 202138, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 34, "name": "한국투자신탁운용 FI운용본부", "aum": 392994, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 35, "name": "한국투자신탁운용", "aum": 401000, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 36, "name": "저축은행중앙회2", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 37, "name": "마이다스에셋자산운용", "aum": 145774, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 38, "name": "현대인베스트먼트자산운용", "aum": 124830, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 39, "name": "플러스자산운용", "aum": 112497, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 40, "name": "iM뱅크", "aum": 100000, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 41, "name": "KB손해보험", "aum": 167267, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 42, "name": "DB손해보험", "aum": 127868, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 43, "name": "AIA생명", "aum": 113573, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 44, "name": "ABL생명", "aum": 102180, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 45, "name": "미래에셋생명 투자운용팀", "aum": 104778, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 46, "name": "동양생명 글로벌전략운용본부(메인)", "aum": 159402, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 47, "name": "NH농협중앙회", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 48, "name": "메리츠화재", "aum": 160778, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 49, "name": "노란우산공제회", "aum": 160000, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 50, "name": "대한지방행정공제회", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 51, "name": "군인공제회", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 52, "name": "BNK자산운용", "aum": 89709, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 53, "name": "유리자산운용", "aum": 87571, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 54, "name": "대신자산운용", "aum": 81625, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 55, "name": "VI자산운용", "aum": 77871, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 56, "name": "신영자산운용", "aum": 66538, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 57, "name": "다올자산운용", "aum": 64414, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 58, "name": "유진자산운용", "aum": 44553, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 59, "name": "베어링자산운용", "aum": 42518, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 60, "name": "현대자산운용", "aum": 40181, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 61, "name": "JB자산운용", "aum": 36272, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 62, "name": "카디안자산운용", "aum": 33193, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 63, "name": "IBK기업은행", "aum": "은행 3그룹", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 64, "name": "우리은행 신탁부 채권", "aum": "은행 1그룹", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 65, "name": "우리은행 WM상품부", "aum": "은행 1그룹", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 66, "name": "신한은행 투자상품부", "aum": "은행 1그룹", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 67, "name": "신한은행", "aum": "은행 1그룹", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 68, "name": "한화손보", "aum": 82053, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 69, "name": "NH농협손해보험 투자운용팀", "aum": 48973, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 70, "name": "롯데손해보험", "aum": 46880, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 71, "name": "흥국생명", "aum": 84253, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 72, "name": "KDB생명보험", "aum": 82700, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 73, "name": "푸본현대생명", "aum": 59283, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 74, "name": "라이나생명", "aum": 31031, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 75, "name": "하나생명", "aum": 30908, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 76, "name": "신용보증기금", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 77, "name": "IBK연금보험", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 78, "name": "NH농협중앙회 상호금융자금부", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 79, "name": "SC제일은행 투자전략상품부", "aum": "은행 3그룹", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 80, "name": "iM에셋자산운용", "aum": 80461, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 81, "name": "현대커머셜", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 82, "name": "현대카드", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 83, "name": "한국수출입은행", "aum": "은행 3그룹", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 84, "name": "NH농협은행 신탁부", "aum": "은행 2그룹", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 85, "name": "흥국화재", "aum": 55047, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 86, "name": "코리안리", "aum": 37118, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 87, "name": "DB생명", "aum": 35173, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 88, "name": "한국증권금융", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 89, "name": "기술보증기금", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 90, "name": "과학기술인공제회", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 91, "name": "경찰공제회", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 92, "name": "SGI서울보증보험", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 93, "name": "저축은행중앙회1", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 94, "name": "한국투자밸류자산운용", "aum": 14905, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 95, "name": "웰컴자산운용", "aum": 10491, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 96, "name": "트러스톤자산운용", "aum": 10323, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 97, "name": "KCGI자산운용", "aum": 7730, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 98, "name": "HDC자산운용", "aum": 7055, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 99, "name": "칸서스자산운용", "aum": 6524, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 100, "name": "브이자산운용", "aum": 2591, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 101, "name": "라이프자산운용", "aum": 2424, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 102, "name": "수성자산운용", "aum": 1535, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 103, "name": "에이원자산운용", "aum": 1117, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 104, "name": "스팍스자산운용", "aum": 588, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 105, "name": "지안자산운용", "aum": 519, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 106, "name": "알파자산운용", "aum": 463, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 107, "name": "더제이자산운용", "aum": 339, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 108, "name": "골든브릿지자산운용", "aum": 36, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 109, "name": "맥쿼리자산운용", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 110, "name": "전북은행", "aum": "은행 4그룹", "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 111, "name": "Sh수협은행", "aum": "은행 4그룹", "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 112, "name": "BNK부산은행", "aum": "은행 4그룹", "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 113, "name": "BNK경남은행", "aum": "은행 4그룹", "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 114, "name": "하나손해보험", "aum": 11293, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 115, "name": "한국채권투자운용", "aum": 7146, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 116, "name": "플랫폼파트너스자산운용", "aum": 87, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 117, "name": "슈로더자산운용", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 118, "name": "미래에셋생명 변액운용", "aum": 28000, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 119, "name": "동양생명 자산운용본부", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 120, "name": "보고펀드자산운용", "aum": 778, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 121, "name": "공무원연금 자금운용단", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 122, "name": "KB라이프 변액계정", "aum": 26500, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 123, "name": "KB국민은행 신탁부", "aum": "은행 1그룹", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 124, "name": "코람코자산운용", "aum": 556, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 125, "name": "메테우스자산운용", "aum": 1149, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 126, "name": "카카오뱅크 자금운용팀", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 127, "name": "종근당홀딩스", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 128, "name": "전문건설공제조합", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 129, "name": "NH농협은행", "aum": "은행 2그룹", "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 130, "name": "Sh수협자산운용", "aum": 29476, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 131, "name": "코레이트자산운용", "aum": 28541, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 132, "name": "건설근로자공제회", "aum": 27992, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 133, "name": "iM라이프", "aum": 27746, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 134, "name": "NH농협중앙회 신탁부", "aum": 18000, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 135, "name": "BNP파리바카디프생명보험", "aum": 13594, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 136, "name": "오라이언자산운용", "aum": 6960, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 137, "name": "다원자산운용", "aum": 4923, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 138, "name": "DS자산운용", "aum": 1933, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 139, "name": "브이엠자산운용", "aum": 1623, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 140, "name": "이지스자산운용", "aum": 1520, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 141, "name": "에셋플러스자산운용", "aum": 1435, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 142, "name": "비전자산운용", "aum": 826, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 143, "name": "케이클라비스자산운용", "aum": 585, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 144, "name": "안다자산운용", "aum": 522, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 145, "name": "라이언자산운용", "aum": 457, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 146, "name": "SP자산운용", "aum": 307, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 147, "name": "슬기자산운용", "aum": 133, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 148, "name": "피데스자산운용", "aum": 132, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 149, "name": "원자산운용", "aum": 74, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 150, "name": "퍼시픽자산운용", "aum": 67, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 151, "name": "마스턴투자운용", "aum": 64, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 152, "name": "유경PSG자산운용", "aum": 41, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 153, "name": "블래쉬자산운용", "aum": 32, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 154, "name": "아너스자산운용", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 155, "name": "멜론자산운용", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 156, "name": "한국지방재정공제회", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 157, "name": "토스뱅크", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 158, "name": "케이뱅크 자금팀(채권)", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 159, "name": "산림조합중앙회", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "채권, 신용분석", "rank": 160, "name": "티엘자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 161, "name": "지큐자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 162, "name": "아스트라자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 163, "name": "비앤아이자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 164, "name": "리코자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 165, "name": "대덕자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 166, "name": "글로벌원자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 167, "name": "투시그마인베스트먼트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 168, "name": "LK투자파트너스", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 169, "name": "JB인베스트먼트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 170, "name": "파운데이션투자자문", "aum": "탈락(429)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 171, "name": "설먼인베스트먼트", "aum": "탈락(233)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 172, "name": "가치투자자문", "aum": "탈락(1221)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 173, "name": "업라이즈", "aum": "탈락(1036)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 174, "name": "포커스자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 175, "name": "트라움자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 176, "name": "아샘자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 177, "name": "아람자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 178, "name": "삼성헤지자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 179, "name": "누림자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 180, "name": "LK자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 181, "name": "JS투자일임", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 182, "name": "크레디트스위스", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 183, "name": "알파뷰파트너스투자자문", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 184, "name": "아주아이비투자", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 185, "name": "블리츠캐피탈매니지먼트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "채권, 신용분석", "rank": 186, "name": "AF인베스트먼트", "aum": "공시X", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}]}, {"field": "자산배분", "institutionCount": 162, "requested": 281, "completed": 36, "remaining": 245, "rate": 0.12811387900355872, "institutions": [{"field": "자산배분", "rank": 1, "name": "국민연금", "aum": 2493080, "requested": 10, "completed": 10, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "자산배분", "rank": 2, "name": "삼성자산운용", "aum": 1850348, "requested": 6, "completed": 6, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "자산배분", "rank": 3, "name": "미래에셋자산운용", "aum": 1224200, "requested": 5, "completed": 4, "remaining": 1, "rate": 0.8, "status": "진행중"}, {"field": "자산배분", "rank": 4, "name": "한국교직원공제회", "aum": 819900, "requested": 4, "completed": 4, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "자산배분", "rank": 5, "name": "삼성화재", "aum": 0, "requested": 4, "completed": 4, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "자산배분", "rank": 6, "name": "삼성생명", "aum": 549634, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 7, "name": "KB자산운용", "aum": 561166, "requested": 4, "completed": 0, "remaining": 4, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 8, "name": "현대해상", "aum": 139901, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 9, "name": "현대인베스트먼트자산운용", "aum": 111368, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 10, "name": "한화자산운용", "aum": 281303, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 11, "name": "한화생명", "aum": 328206, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 12, "name": "한국투자신탁운용", "aum": 228486, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 13, "name": "하나은행", "aum": "은행 1그룹", "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 14, "name": "키움투자자산운용", "aum": 228571, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 15, "name": "이지스자산운용", "aum": 301735, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 16, "name": "우정사업본부 예금", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 17, "name": "우정사업본부 보험", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 18, "name": "신한라이프", "aum": 122239, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 19, "name": "새마을금고중앙회", "aum": 219893, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 20, "name": "사학연금", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 21, "name": "보고펀드자산운용", "aum": 137879, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 22, "name": "미래에셋생명 자산운용", "aum": 159765, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 23, "name": "농협생명", "aum": 115022, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 24, "name": "농협금융지주", "aum": 144000, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 25, "name": "노란우산공제회", "aum": 120000, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 26, "name": "국민건강보험", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 27, "name": "교보생명", "aum": 367561, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 28, "name": "POBA행정공제회", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 29, "name": "NH아문디자산운용", "aum": 185578, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 30, "name": "KDB산업은행", "aum": "은행 1그룹", "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 31, "name": "KB손해보험", "aum": 137949, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 32, "name": "KBIZ중소기업중앙회", "aum": 0, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 33, "name": "IBK자산운용", "aum": 149160, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 34, "name": "DB손해보험", "aum": 249269, "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 35, "name": "KB국민은행 신탁그룹", "aum": "은행 1그룹", "requested": 3, "completed": 0, "remaining": 3, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 36, "name": "투시그마인베스트먼트", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 37, "name": "흥국화재", "aum": 40516, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 38, "name": "흥국자산운용", "aum": 85372, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 39, "name": "흥국생명", "aum": 83480, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 40, "name": "현대자산운용", "aum": 24847, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 41, "name": "한화손보", "aum": 66541, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 42, "name": "한국증권금융", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 43, "name": "하나자산운용", "aum": 53948, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 44, "name": "하나생명", "aum": 12238, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 45, "name": "푸본현대생명", "aum": 73450, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 46, "name": "퍼시픽자산운용", "aum": 46514, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 47, "name": "트러스톤자산운용", "aum": 55600, "requested": 2, "completed": 2, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "자산배분", "rank": 48, "name": "타임폴리오자산운용", "aum": 11002, "requested": 2, "completed": 1, "remaining": 1, "rate": 0.5, "status": "진행중"}, {"field": "자산배분", "rank": 49, "name": "코리안리", "aum": 66182, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 50, "name": "코람코자산운용", "aum": 71017, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 51, "name": "칸서스자산운용", "aum": 42944, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 52, "name": "카디안자산운용", "aum": 11668, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 53, "name": "유진자산운용", "aum": 19765, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 54, "name": "우리자산운용", "aum": 69789, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 55, "name": "우리은행", "aum": "은행 1그룹", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 56, "name": "엠플러스자산운용", "aum": 11547, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 57, "name": "신한은행 GMS본부", "aum": "은행 1그룹", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 58, "name": "삼천리자산운용", "aum": 22665, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 59, "name": "산림조합중앙회", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 60, "name": "베어링자산운용", "aum": 43315, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 61, "name": "미래에셋생명 변액운용", "aum": 39000, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 62, "name": "메트라이프", "aum": 29010, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 63, "name": "메리츠화재", "aum": 85998, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 64, "name": "마이다스에셋자산운용", "aum": 10415, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 65, "name": "마스턴투자운용", "aum": 80106, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 66, "name": "롯데손해보험", "aum": 54410, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 67, "name": "라이나생명", "aum": 26338, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 68, "name": "동양생명 글로벌전략운용본부(메인)", "aum": 108903, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 69, "name": "대한지방행정공제회", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 70, "name": "대한소방공제회", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 71, "name": "대신자산운용", "aum": 15946, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 72, "name": "다올자산운용", "aum": 65870, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 73, "name": "기술보증기금", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 74, "name": "군인공제회", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 75, "name": "국민연금 기금운용본부", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 76, "name": "교보악사자산운용", "aum": 97318, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 77, "name": "공무원연금공단", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 78, "name": "경찰공제회", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 79, "name": "건설근로자공제회", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 80, "name": "VI자산운용", "aum": 22543, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 81, "name": "Sh수협은행", "aum": "은행 3그룹", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 82, "name": "SC제일은행 투자전략상품부", "aum": "은행 3그룹", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 83, "name": "NH농협은행", "aum": "은행 2그룹", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 84, "name": "NH농협손해보험 투자운용팀", "aum": 32935, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 85, "name": "KDB생명", "aum": 52577, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 86, "name": "KCGI자산운용", "aum": 20655, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 87, "name": "KB라이프", "aum": 51336, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 88, "name": "KB국민은행 자본시장그룹", "aum": "은행 1그룹", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 89, "name": "JB자산운용", "aum": 17071, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 90, "name": "iM에셋자산운용", "aum": 33186, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 91, "name": "iM뱅크", "aum": 12000, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 92, "name": "IBK연금보험", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 93, "name": "IBK기업은행", "aum": "은행 3그룹", "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 94, "name": "DB자산운용", "aum": 24677, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 95, "name": "DB생명", "aum": 28781, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 96, "name": "BNK자산운용", "aum": 12234, "requested": 2, "completed": 2, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "자산배분", "rank": 97, "name": "AIA생명", "aum": 61442, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 98, "name": "ABL생명", "aum": 42808, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 99, "name": "신한자산운용 멀티에셋본부", "aum": 0, "requested": 2, "completed": 0, "remaining": 2, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 100, "name": "신한자산운용 LDI본부", "aum": 494671, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 101, "name": "한국투자밸류자산운용", "aum": 5502, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 102, "name": "한국지방재정공제회", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 103, "name": "한국방송통신전파진흥원", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 104, "name": "플러스자산운용", "aum": 1632, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 105, "name": "코레이트자산운용", "aum": 9712, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 106, "name": "종근당홀딩스", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 107, "name": "전북은행", "aum": "은행 4그룹", "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 108, "name": "전문건설공제조합", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 109, "name": "유리자산운용", "aum": 6407, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 110, "name": "유경PSG자산운용", "aum": 1920, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 111, "name": "안다자산운용", "aum": 2054, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 112, "name": "신협중앙회", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 113, "name": "신한은행 투자상품부", "aum": "은행 1그룹", "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 114, "name": "신영자산운용", "aum": 2136, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 115, "name": "스마일게이트자산운용", "aum": 6681, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 116, "name": "슈로더자산운용", "aum": 8920, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 117, "name": "수협중앙회", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 118, "name": "블리츠자산운용", "aum": 1598, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 119, "name": "브이자산운용", "aum": 4993, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 120, "name": "멜론자산운용", "aum": 2363, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 121, "name": "머스트자산운용", "aum": 2777, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 122, "name": "마일스톤자산운용", "aum": 6947, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 123, "name": "동양생명 자산운용본부", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 124, "name": "골든브릿지자산운용", "aum": 2275, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 125, "name": "NH헤지자산운용", "aum": 6564, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 126, "name": "NH농협중앙회 자금부", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 127, "name": "NH농협중앙회", "aum": 0, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 128, "name": "KB라이프 변액계정", "aum": 14500, "requested": 1, "completed": 0, "remaining": 1, "rate": 0.0, "status": "미진행"}, {"field": "자산배분", "rank": 129, "name": "HDC자산운용", "aum": 6208, "requested": 1, "completed": 1, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "자산배분", "rank": 130, "name": "BNK부산은행", "aum": "은행 4그룹", "requested": 1, "completed": 1, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "자산배분", "rank": 131, "name": "BNK경남은행", "aum": "은행 4그룹", "requested": 1, "completed": 1, "remaining": 0, "rate": 1.0, "status": "완료"}, {"field": "자산배분", "rank": 132, "name": "피데스자산운용", "aum": 917, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 133, "name": "푸른파트너스자산운용", "aum": 473, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 134, "name": "토러스자산운용", "aum": 3, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 135, "name": "원자산운용", "aum": 438, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 136, "name": "에이원자산운용", "aum": 0, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 137, "name": "아크임팩트자산운용", "aum": 85, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 138, "name": "슬기자산운용", "aum": 0, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 139, "name": "삼성액티브자산운용", "aum": 669, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 140, "name": "비전자산운용", "aum": 605, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 141, "name": "블래쉬자산운용", "aum": 0, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 142, "name": "르네상스자산운용", "aum": 0, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 143, "name": "라이프자산운용", "aum": 608, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 144, "name": "더제이자산운용", "aum": 193, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 145, "name": "더블유자산운용", "aum": 0, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 146, "name": "BNP파리바카디프생명보험", "aum": 116, "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 147, "name": "파레토자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 148, "name": "트라움자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 149, "name": "토브자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 150, "name": "쿼터백자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 151, "name": "앱솔루트자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 152, "name": "아샘자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 153, "name": "스타퀘스트자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 154, "name": "삼성헤지자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 155, "name": "비욘드자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 156, "name": "리코자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 157, "name": "디멘젼투자자문", "aum": "탈락(485)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 158, "name": "두물머리투자자문", "aum": "탈락(0)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 159, "name": "두나무투자일임", "aum": "탈락(1009)", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 160, "name": "대덕자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 161, "name": "다인자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}, {"field": "자산배분", "rank": 162, "name": "글로벌원자산운용", "aum": "탈락", "requested": 0, "completed": 0, "remaining": 0, "rate": 0, "status": "대상없음"}]}], "totals": {"requested": 1935, "completed": 193, "remaining": 1742, "institutionCount": 705, "progressTotal": 193, "fieldCount": 3, "lastProgressDate": "06/20", "rate": 0.09974160206718347}, "progress": {"dates": ["06/19", "06/20", "06/21", "06/22", "06/23", "06/24", "06/25", "06/26", "06/27", "06/28"], "rows": {"주식": [97, 20, 0, 0, 0, 0, 0, 0, 0, 0], "채권": [35, 5, 0, 0, 0, 0, 0, 0, 0, 0], "자산배분": [31, 5, 0, 0, 0, 0, 0, 0, 0, 0], "계": [163, 30, 0, 0, 0, 0, 0, 0, 0, 0]}, "totals": {"주식": 117, "채권": 40, "자산배분": 36, "계": 193}}, "priority": [{"field": "주식", "rank": 5, "name": "삼성생명", "aum": 707297, "requested": 20, "completed": 0, "remaining": 20, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 6, "name": "KB자산운용", "aum": 690952, "requested": 18, "completed": 0, "remaining": 18, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 7, "name": "NH아문디자산운용", "aum": 437425, "requested": 16, "completed": 0, "remaining": 16, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 8, "name": "한국교직원공제회", "aum": 0, "requested": 15, "completed": 0, "remaining": 15, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 9, "name": "신한자산운용", "aum": 371694, "requested": 15, "completed": 0, "remaining": 15, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 10, "name": "사립학교교직원연금공단", "aum": 0, "requested": 15, "completed": 0, "remaining": 15, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 11, "name": "마이다스에셋자산운용", "aum": 312512, "requested": 15, "completed": 0, "remaining": 15, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 12, "name": "공무원연금공단", "aum": 0, "requested": 15, "completed": 0, "remaining": 15, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 13, "name": "한화자산운용", "aum": 256064, "requested": 14, "completed": 0, "remaining": 14, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 14, "name": "트러스톤자산운용", "aum": 264512, "requested": 14, "completed": 0, "remaining": 14, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 15, "name": "키움투자자산운용", "aum": 267074, "requested": 14, "completed": 0, "remaining": 14, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 16, "name": "베어링자산운용", "aum": 296079, "requested": 14, "completed": 0, "remaining": 14, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 17, "name": "교보악사자산운용", "aum": 222997, "requested": 12, "completed": 0, "remaining": 12, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 18, "name": "삼성액티브자산운용", "aum": 236196, "requested": 12, "completed": 0, "remaining": 12, "rate": 0.0, "status": "미진행"}, {"field": "주식", "rank": 19, "name": "DB자산운용", "aum": 250850, "requested": 12, "completed": 0, "remaining": 12, "rate": 0.0, "status": "미진행"}]}</script>
+  <script>
+    const data = JSON.parse(document.getElementById("dashboard-data").textContent);
+    const fmtInt = new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 0 });
+    const pct = (v, digits = 1) => `${(v * 100).toFixed(digits)}%`;
+    const safe = (v) => v === null || v === undefined || v === "" ? "-" : String(v);
+    const color = {
+      "주식": "#2f6f9f",
+      "채권": "#d08b2e",
+      "채권, 신용분석": "#d08b2e",
+      "자산배분": "#4d9471",
+      "계": "#5b9bd5",
+    };
+    let currentField = "전체";
+
+    document.getElementById("sourceLine").textContent = "";
+    document.getElementById("generatedAt").textContent = `생성: ${data.generatedAt}`;
+    document.getElementById("lastProgressDate").textContent = data.totals.lastProgressDate || "-";
+
+    function statusClass(status) {
+      if (status === "완료") return "done";
+      if (status === "진행중") return "active";
+      return "todo";
+    }
+
+    function kpi(label, value, sub = "") {
+      return `<div class="kpi"><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub}</div></div>`;
+    }
+
+    function renderKpis() {
+      const t = data.totals;
+      document.getElementById("kpiGrid").innerHTML = [
+        `<div class="kpi-group total">${kpi("전체 완료 수", fmtInt.format(t.completed), `전체 완료율 ${pct(t.rate)}`)}</div>`,
+        `<div class="kpi-group fields">
+          <div class="kpi-group-label">분야별 완료 수</div>
+          ${data.fields.map((field) => kpi(field.field, fmtInt.format(field.completed), `요청 ${fmtInt.format(field.requested)} · ${pct(field.rate)}`)).join("")}
+        </div>`,
+        `<div class="kpi-group date">${kpi("집계 기준일", `${t.lastProgressDate || "-"} ${data.generatedHour}시 기준`, "")}</div>`,
+      ].join("");
+    }
+
+    function renderSummary() {
+      const rows = data.fields.map((f) => `
+        <tr>
+          <td>${f.field}</td>
+          <td>${fmtInt.format(f.institutionCount)}</td>
+          <td>${fmtInt.format(f.requested)}</td>
+          <td class="highlight-col">${fmtInt.format(f.completed)}</td>
+          <td>${fmtInt.format(f.remaining)}</td>
+          <td>${pct(f.rate)}</td>
+        </tr>
+      `).join("");
+      const t = data.totals;
+      document.getElementById("summaryTable").innerHTML = `
+        <thead><tr><th>분야</th><th>대상 기관</th><th>요청 표수</th><th class="highlight-col">완료 표수</th><th>잔여 표수</th><th>완료율</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td>합계</td><td>${fmtInt.format(t.institutionCount)}</td><td>${fmtInt.format(t.requested)}</td><td class="highlight-col">${fmtInt.format(t.completed)}</td><td>${fmtInt.format(t.remaining)}</td><td>${pct(t.rate)}</td></tr></tfoot>
+      `;
+    }
+
+    function renderPriority() {
+      document.getElementById("priorityList").innerHTML = data.priority.map((item) => `
+        <div class="priority-item">
+          <div>
+            <div class="priority-name" title="${item.name}">${item.name}</div>
+            <div class="priority-field">${item.field} · 요청 ${fmtInt.format(item.requested)} / 완료 ${fmtInt.format(item.completed)}</div>
+          </div>
+          <div class="priority-remain">${fmtInt.format(item.remaining)}</div>
+        </div>
+      `).join("");
+    }
+
+    function allInstitutions() {
+      return data.fields.flatMap((field) => field.institutions);
+    }
+
+    function renderTabs() {
+      const tabs = ["전체", ...data.fields.map((f) => f.field)];
+      document.getElementById("fieldTabs").innerHTML = tabs.map((tab) => `
+        <button type="button" class="${tab === currentField ? "active" : ""}" data-field="${tab}">${tab}</button>
+      `).join("");
+      document.querySelectorAll("#fieldTabs button").forEach((button) => {
+        button.addEventListener("click", () => {
+          currentField = button.dataset.field;
+          renderTabs();
+          renderInstitutions();
+        });
+      });
+    }
+
+    function filteredInstitutions() {
+      const q = document.getElementById("searchInput").value.trim().toLowerCase();
+      const status = document.getElementById("statusFilter").value;
+      return allInstitutions().filter((item) => {
+        const fieldMatch = currentField === "전체" || item.field === currentField;
+        const statusMatch = status === "all" || item.status === status;
+        const searchMatch = !q || item.name.toLowerCase().includes(q);
+        return fieldMatch && statusMatch && searchMatch;
+      });
+    }
+
+    function renderInstitutions() {
+      const rows = filteredInstitutions();
+      document.getElementById("institutionCount").textContent = `${fmtInt.format(rows.length)}개 표시`;
+      if (rows.length === 0) {
+        document.getElementById("institutionTable").innerHTML = `<tbody><tr><td class="empty">표시할 기관이 없습니다.</td></tr></tbody>`;
+        return;
+      }
+      document.getElementById("institutionTable").innerHTML = `
+        <thead>
+          <tr>
+            <th>분야</th><th>기관</th><th>요청</th><th>완료</th><th>잔여</th><th>완료율</th><th>상태</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((item) => `
+            <tr>
+              <td>${item.field}</td>
+              <td title="${item.name}">${item.name}</td>
+              <td>${fmtInt.format(item.requested)}</td>
+              <td>${fmtInt.format(item.completed)}</td>
+              <td>${fmtInt.format(item.remaining)}</td>
+              <td class="progress-cell">
+                <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:4px"><span>${pct(item.rate, 0)}</span><span class="muted">${item.completed}/${item.requested}</span></div>
+                <div class="bar"><span style="width:${Math.min(item.rate * 100, 100).toFixed(1)}%"></span></div>
+              </td>
+              <td><span class="status ${statusClass(item.status)}">${item.status}</span></td>
+            </tr>
+          `).join("")}
+        </tbody>
+      `;
+    }
+
+    function renderProgressTable() {
+      const dates = data.progress.dates;
+      const rows = [
+        ["주식", ...data.progress.rows["주식"], data.progress.totals["주식"]],
+        ["채권", ...data.progress.rows["채권"], data.progress.totals["채권"]],
+        ["자산배분", ...data.progress.rows["자산배분"], data.progress.totals["자산배분"]],
+        ["계", ...data.progress.rows["계"], data.progress.totals["계"]],
+      ];
+      document.getElementById("progressTable").innerHTML = `
+        <thead><tr><th></th>${dates.map((d) => `<th>${d}</th>`).join("")}<th class="highlight-col">총계</th></tr></thead>
+        <tbody>${rows.map((row) => `<tr class="${row[0] === "계" ? "total-row" : ""}">${row.map((cell, idx) => `<td class="${idx === row.length - 1 ? "highlight-col" : ""}">${idx === 0 ? cell : (cell ? fmtInt.format(cell) : "")}</td>`).join("")}</tr>`).join("")}</tbody>
+      `;
+    }
+
+    function svgEl(name, attrs = {}) {
+      const el = document.createElementNS("http://www.w3.org/2000/svg", name);
+      Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
+      return el;
+    }
+
+    function clearSvg(svg) {
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+    }
+
+    function drawCompletionChart() {
+      const svg = document.getElementById("completionChart");
+      clearSvg(svg);
+      const width = 440, height = 260;
+      const margin = { top: 18, right: 18, bottom: 38, left: 44 };
+      const plotW = width - margin.left - margin.right;
+      const plotH = height - margin.top - margin.bottom;
+      const max = Math.max(0.15, ...data.fields.map((f) => f.rate)) * 1.08;
+
+      for (let i = 0; i <= 5; i += 1) {
+        const y = margin.top + plotH - (plotH * i / 5);
+        svg.appendChild(svgEl("line", { x1: margin.left, y1: y, x2: width - margin.right, y2: y, class: "gridline" }));
+        const label = svgEl("text", { x: margin.left - 8, y: y + 4, class: "tick", "text-anchor": "end" });
+        label.textContent = `${Math.round(max * i / 5 * 100)}%`;
+        svg.appendChild(label);
+      }
+
+      svg.appendChild(svgEl("line", { x1: margin.left, y1: margin.top + plotH, x2: width - margin.right, y2: margin.top + plotH, class: "axis" }));
+      const groupW = plotW / data.fields.length;
+      const barW = groupW * 0.42;
+      data.fields.forEach((field, i) => {
+        const x = margin.left + groupW * i + groupW / 2 - barW / 2;
+        const barH = plotH * field.rate / max;
+        const y = margin.top + plotH - barH;
+        svg.appendChild(svgEl("rect", { x, y, width: barW, height: barH, fill: color[field.field], rx: 4 }));
+        const value = svgEl("text", { x: x + barW / 2, y: y - 8, class: "data-label", "text-anchor": "middle" });
+        value.textContent = pct(field.rate);
+        svg.appendChild(value);
+        const label = svgEl("text", { x: x + barW / 2, y: height - 15, class: "axis-label", "text-anchor": "middle" });
+        label.textContent = field.field;
+        svg.appendChild(label);
+      });
+    }
+
+    function drawDailyChart() {
+      const svg = document.getElementById("dailyChart");
+      clearSvg(svg);
+      const width = 440, height = 280;
+      const margin = { top: 14, right: 20, bottom: 42, left: 44 };
+      const plotW = width - margin.left - margin.right;
+      const plotH = height - margin.top - margin.bottom;
+      const series = [
+        { key: "주식", color: color["주식"] },
+        { key: "채권", color: color["채권"] },
+        { key: "자산배분", color: color["자산배분"] },
+        { key: "계", color: color["계"] },
+      ];
+      const maxValue = Math.max(10, ...series.flatMap((s) => data.progress.rows[s.key]));
+      const roundedMax = Math.ceil(maxValue / 50) * 50;
+      const xFor = (i) => margin.left + (plotW * i / (data.progress.dates.length - 1));
+      const yFor = (v) => margin.top + plotH - (plotH * v / roundedMax);
+
+      for (let i = 0; i <= 4; i += 1) {
+        const y = margin.top + plotH - (plotH * i / 4);
+        svg.appendChild(svgEl("line", { x1: margin.left, y1: y, x2: width - margin.right, y2: y, class: "gridline" }));
+        const label = svgEl("text", { x: margin.left - 8, y: y + 4, class: "tick", "text-anchor": "end" });
+        label.textContent = fmtInt.format(roundedMax * i / 4);
+        svg.appendChild(label);
+      }
+      svg.appendChild(svgEl("line", { x1: margin.left, y1: margin.top + plotH, x2: width - margin.right, y2: margin.top + plotH, class: "axis" }));
+      data.progress.dates.forEach((date, i) => {
+        const label = svgEl("text", { x: xFor(i), y: height - 16, class: "tick", "text-anchor": "middle" });
+        label.textContent = date;
+        svg.appendChild(label);
+      });
+      series.forEach((s) => {
+        const points = data.progress.rows[s.key].map((v, i) => `${xFor(i)},${yFor(v)}`).join(" ");
+        svg.appendChild(svgEl("polyline", {
+          points,
+          fill: "none",
+          stroke: s.color,
+          "stroke-width": s.key === "계" ? 3 : 2,
+          "stroke-linejoin": "round",
+          "stroke-linecap": "round",
+        }));
+      });
+      document.getElementById("dailyLegend").innerHTML = series.map((s) => `
+        <span class="legend-item" style="color:${s.color}"><span class="swatch"></span><span>${s.key}</span></span>
+      `).join("");
+    }
+
+    function init() {
+      renderKpis();
+      renderSummary();
+      renderPriority();
+      renderTabs();
+      renderInstitutions();
+      renderProgressTable();
+      document.getElementById("searchInput").addEventListener("input", renderInstitutions);
+      document.getElementById("statusFilter").addEventListener("change", renderInstitutions);
+    }
+
+    init();
+  </script>
+</body>
+</html>
